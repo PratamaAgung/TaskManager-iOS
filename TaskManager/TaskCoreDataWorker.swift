@@ -11,9 +11,11 @@ import CoreData
 
 class TaskCoreDataWorker {
     var dataContext : NSManagedObjectContext!
+    var persistenStoreCoor : NSPersistentStoreCoordinator
     
     init(appDelegate: AppDelegate){
         self.dataContext = appDelegate.persistentContainer.viewContext
+        self.persistenStoreCoor = appDelegate.persistentContainer.persistentStoreCoordinator
         
 //        let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "Task")
 //        fetchRequest.returnsObjectsAsFaults = false
@@ -33,6 +35,30 @@ class TaskCoreDataWorker {
 //        }
     }
     
+    func convertDataObjectToTask(data: NSManagedObject) -> TaskDataModel {
+        let taskName = data.value(forKey: "taskName") as? String ?? ""
+        let createdDate = data.value(forKey: "createdDate") as? Date
+        let status = TaskStatus(rawValue: data.value(forKey: "status") as? Int ?? 0)!
+        let finishDate = data.value(forKey: "finishDate") as? Date
+        let willDoDate = data.value(forKey: "willDoDate") as? Date ?? nil
+        let userId = data.value(forKey: "userId") as? String ?? ""
+        
+        let task = TaskDataModel(user_id: userId, taskName: taskName)
+        task.objectID = data.objectID.uriRepresentation()
+        task.status = status
+        if (createdDate != nil) {
+            task.createdDate = createdDate!
+        }
+        if (finishDate != nil) {
+            task.finishedDate = finishDate!
+        }
+        if (willDoDate != nil) {
+            task.willDoDate = willDoDate!
+        }
+        
+        return task
+    }
+    
     func getTasksForUser(userId: String) -> [TaskDataModel] {
         var userTasks = [TaskDataModel]()
         
@@ -43,10 +69,8 @@ class TaskCoreDataWorker {
         do {
             let result = try self.dataContext.fetch(request)
             for data in result as! [NSManagedObject] {
-                let taskName = data.value(forKey: "taskName") as! String
-                let createdDate = data.value(forKey: "createdDate") as! Date
-                let status = TaskStatus(rawValue: data.value(forKey: "status") as! Int)!
-                userTasks.append(TaskDataModel(user_id: userId, taskName: taskName, createdDate: createdDate, status: status))
+                let task = convertDataObjectToTask(data: data)
+                userTasks.append(task)
             }
             
         } catch {
@@ -60,7 +84,7 @@ class TaskCoreDataWorker {
         let entity = NSEntityDescription.entity(forEntityName: "Task", in: self.dataContext)
         let newUser = NSManagedObject(entity: entity!, insertInto: self.dataContext)
         newUser.setValue(task.taskName, forKey: "taskName")
-        newUser.setValue(task.user_id, forKey: "userId")
+        newUser.setValue(task.userID, forKey: "userId")
         newUser.setValue(task.createdDate, forKey: "createdDate")
         newUser.setValue(task.status.rawValue, forKey: "status")
         
@@ -71,5 +95,13 @@ class TaskCoreDataWorker {
             print("Failed saving")
             return false
         }
+    }
+    
+    func getTaskDetail(objectID : URL) -> TaskDataModel {
+        guard let moid = self.persistenStoreCoor.managedObjectID(forURIRepresentation: objectID) else { return TaskDataModel() }
+        let data = self.dataContext.object(with: moid)
+        let task = convertDataObjectToTask(data: data)
+        
+        return task
     }
 }

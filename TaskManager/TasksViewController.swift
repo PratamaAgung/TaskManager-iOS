@@ -11,8 +11,8 @@ import CoreData
 
 class TasksViewController: UIViewController, UITableViewDelegate, UITableViewDataSource {
     @IBOutlet weak var taskList: UITableView!
-    var tasks = [String]()
-    var dataContext : NSManagedObjectContext!
+    var tasks = [TaskDataModel]()
+    var dataWorker : TaskCoreDataWorker!
     var userId : String!
     
     override func viewDidLoad() {
@@ -20,21 +20,8 @@ class TasksViewController: UIViewController, UITableViewDelegate, UITableViewDat
         self.userId = UserDefaults.standard.string(forKey: "userId") ??  ""
         
         let appDelegate = UIApplication.shared.delegate as! AppDelegate
-        self.dataContext = appDelegate.persistentContainer.viewContext
-        
-        let request = NSFetchRequest<NSFetchRequestResult>(entityName: "Task")
-        let predicate = NSPredicate(format: "userId == %@", self.userId)
-        request.returnsObjectsAsFaults = false
-        request.predicate = predicate
-        do {
-            let result = try self.dataContext.fetch(request)
-            for data in result as! [NSManagedObject] {
-                tasks.append(data.value(forKey: "taskName") as! String)
-            }
-            
-        } catch {
-            print("Failed catching data")
-        }
+        self.dataWorker = TaskCoreDataWorker(appDelegate: appDelegate)
+        self.tasks = self.dataWorker.getTasksForUser(userId: self.userId)
         
         self.taskList.delegate = self
         self.taskList.dataSource = self
@@ -60,7 +47,7 @@ class TasksViewController: UIViewController, UITableViewDelegate, UITableViewDat
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "TasksListCell", for: indexPath) as! TasksListCell
         
-        cell.taskName.text = tasks[indexPath.row]
+        cell.taskName.text = tasks[indexPath.row].taskName
         
         return cell
     }
@@ -68,7 +55,7 @@ class TasksViewController: UIViewController, UITableViewDelegate, UITableViewDat
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         if (tableView.cellForRow(at: indexPath) as? TasksListCell) != nil {
             let taskDetailVC = TasksDetail()
-            taskDetailVC.task_id = tasks[indexPath.row]
+            taskDetailVC.task_id = tasks[indexPath.row].taskName
             self.navigationController?.pushViewController(taskDetailVC, animated: true)
         }
     }
@@ -84,17 +71,12 @@ class TasksViewController: UIViewController, UITableViewDelegate, UITableViewDat
         
         alert.addAction(UIAlertAction(title: "OK", style: .default, handler: { action in
             if let name = alert.textFields?.first?.text {
-                let entity = NSEntityDescription.entity(forEntityName: "Task", in: self.dataContext)
-                let newUser = NSManagedObject(entity: entity!, insertInto: self.dataContext)
-                newUser.setValue(name, forKey: "taskName")
-                newUser.setValue(self.userId, forKey: "userId")
-                self.tasks.append(name)
+                let task = TaskDataModel(user_id: self.userId, taskName: name)
+                let status = self.dataWorker.saveNewTask(task: task)
                 
-                do {
-                    try self.dataContext.save()
+                if status {
+                    self.tasks.append(task)
                     self.taskList.reloadData()
-                } catch {
-                    print("Failed saving")
                 }
             }
         }))

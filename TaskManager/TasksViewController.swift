@@ -55,7 +55,7 @@ class TasksViewController: UIViewController, UITableViewDelegate, UITableViewDat
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         if (tableView.cellForRow(at: indexPath) as? TasksListCell) != nil {
             let taskDetailVC = TasksDetail()
-            taskDetailVC.task_id = tasks[indexPath.row].taskName
+            taskDetailVC.taskId = tasks[indexPath.row].objectID!
             self.navigationController?.pushViewController(taskDetailVC, animated: true)
         }
     }
@@ -75,7 +75,7 @@ class TasksViewController: UIViewController, UITableViewDelegate, UITableViewDat
                 let status = self.dataWorker.saveNewTask(task: task)
                 
                 if status {
-                    self.tasks.append(task)
+                    self.tasks = self.dataWorker.getTasksForUser(userId: self.userId)
                     self.taskList.reloadData()
                 }
             }

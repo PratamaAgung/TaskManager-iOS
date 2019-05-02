@@ -12,8 +12,12 @@
     <objects>
         <placeholder placeholderIdentifier="IBFilesOwner" id="-1" userLabel="File's Owner" customClass="TasksDetail" customModule="TaskManager" customModuleProvider="target">
             <connections>
+                <outlet property="createdLabel" destination="txP-ta-S3z" id="JA3-lQ-VGZ"/>
+                <outlet property="finishLabel" destination="60j-gU-ghG" id="C63-6Q-QlK"/>
+                <outlet property="statusLabel" destination="72C-gf-qab" id="b3q-5w-WhR"/>
                 <outlet property="taskNameLabel" destination="fSb-CW-csY" id="Fpk-NV-8FU"/>
                 <outlet property="view" destination="i5M-Pr-FkT" id="sfx-zR-JGt"/>
+                <outlet property="willDoLabel" destination="BA7-Lo-yOZ" id="Ksj-mi-Tps"/>
             </connections>
         </placeholder>
         <placeholder placeholderIdentifier="IBFirstResponder" id="-2" customClass="UIResponder"/>

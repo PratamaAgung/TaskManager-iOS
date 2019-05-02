@@ -13,15 +13,19 @@ class TasksViewController: UIViewController, UITableViewDelegate, UITableViewDat
     @IBOutlet weak var taskList: UITableView!
     var tasks = [String]()
     var dataContext : NSManagedObjectContext!
+    var userId : String!
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        self.userId = UserDefaults.standard.string(forKey: "userId") ??  ""
         
         let appDelegate = UIApplication.shared.delegate as! AppDelegate
         self.dataContext = appDelegate.persistentContainer.viewContext
         
         let request = NSFetchRequest<NSFetchRequestResult>(entityName: "Task")
+        let predicate = NSPredicate(format: "userId == %@", self.userId)
         request.returnsObjectsAsFaults = false
+        request.predicate = predicate
         do {
             let result = try self.dataContext.fetch(request)
             for data in result as! [NSManagedObject] {
@@ -83,7 +87,9 @@ class TasksViewController: UIViewController, UITableViewDelegate, UITableViewDat
                 let entity = NSEntityDescription.entity(forEntityName: "Task", in: self.dataContext)
                 let newUser = NSManagedObject(entity: entity!, insertInto: self.dataContext)
                 newUser.setValue(name, forKey: "taskName")
+                newUser.setValue(self.userId, forKey: "userId")
                 self.tasks.append(name)
+                
                 do {
                     try self.dataContext.save()
                     self.taskList.reloadData()
